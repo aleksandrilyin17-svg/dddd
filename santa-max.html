@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Тайный Санта для семьи — MAX</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 50%, #172554 100%);
+      color: #f8fafc;
+      min-height: 100vh;
+    }
+    .glass {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      backdrop-filter: blur(12px);
+    }
+    .btn-red {
+      background: linear-gradient(135deg, #ef4444, #b91c1c);
+    }
+    .btn-red:hover { filter: brightness(1.08); }
+    .btn-max {
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+    }
+    .btn-max:hover { filter: brightness(1.08); }
+    .input-dark {
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #f8fafc;
+    }
+    .input-dark:focus {
+      outline: none;
+      border-color: #60a5fa;
+    }
+  </style>
+</head>
+<body class="p-4 flex items-center justify-center">
+  <main class="w-full max-w-xl space-y-4">
+    <!-- Header -->
+    <header class="text-center space-y-1">
+      <div class="text-4xl">🎅</div>
+      <h1 class="text-2xl font-bold tracking-tight">Семейный Тайный Санта</h1>
+      <p class="text-xs text-slate-300">
+        Слепые конверты для мессенджера MAX — организатор не видит пары
+      </p>
+    </header>
+
+    <!-- RECIPIENT ENVELOPE VIEW (when opened via #ticket=...) -->
+    <section id="envelope-view" class="hidden glass rounded-2xl p-6 text-center space-y-4">
+      <div class="text-5xl" id="env-emoji">✉️</div>
+      <div class="space-y-1">
+        <div class="text-xs uppercase tracking-wider text-blue-300 font-semibold" id="env-title">
+          Семейный Тайный Санта
+        </div>
+        <h2 class="text-xl font-bold">
+          Персональный конверт для: <span id="env-giver" class="text-amber-300"></span>
+        </h2>
+        <p class="text-xs text-slate-300">
+          Если вы не этот человек — закройте страницу, чтобы сохранить тайну!
+        </p>
+      </div>
+
+      <button
+        id="reveal-btn"
+        onclick="revealTicket()"
+        class="btn-red text-white font-semibold px-6 py-3 rounded-xl text-sm shadow-lg w-full"
+      >
+        🎁 Открыть мой конверт
+      </button>
+
+      <div id="revealed-box" class="hidden bg-slate-900/70 border border-emerald-400/40 rounded-xl p-5 space-y-3 text-left">
+        <div class="text-center space-y-1">
+          <div class="text-xs text-emerald-300 uppercase tracking-wider font-semibold">
+            Ты даришь подарок:
+          </div>
+          <div id="env-receiver" class="text-2xl font-extrabold text-amber-300"></div>
+        </div>
+        <div id="env-meta" class="text-xs text-slate-300 space-y-1 border-t border-white/10 pt-3"></div>
+        <p class="text-[11px] text-slate-400 text-center pt-1">
+          Тсс... никому не рассказывай! 🤫
+        </p>
+      </div>
+
+      <button
+        onclick="backToOrganizer()"
+        class="text-xs text-slate-400 hover:text-white underline pt-2"
+      >
+        Создать новую игру для своей семьи
+      </button>
+    </section>
+
+    <!-- ORGANIZER VIEW -->
+    <section id="organizer-view" class="space-y-4">
+      <!-- Local file notice -->
+      <div id="local-notice" class="hidden glass rounded-2xl p-3.5 text-xs space-y-2 border-amber-400/40">
+        <div class="font-semibold text-amber-300">
+          ⚠️ Страница открыта локально (не на сайте)
+        </div>
+        <p class="text-slate-300 leading-relaxed">
+          Локальную ссылку <code>file://</code> родственники не смогут открыть на своих телефонах.
+          Чтобы рассылать ссылки в <b>MAX</b>, выложите этот файл (<code>santa-max.html</code>) на любой
+          бесплатный хостинг (GitHub Pages / Netlify Drop) и вставьте его адрес ниже — либо используйте
+          кнопки «Секретный просмотр на одном экране».
+        </p>
+        <input
+          id="hosted-url"
+          type="url"
+          placeholder="https://ваш-сайт.netlify.app/santa-max.html (необязательно)"
+          class="input-dark w-full px-3 py-2 rounded-lg text-xs"
+        />
+      </div>
+
+      <!-- Setup Card -->
+      <div id="setup-card" class="glass rounded-2xl p-4 space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+          <label class="space-y-1">
+            <span class="text-slate-300">Название игры</span>
+            <input id="game-title" type="text" value="Семья" class="input-dark w-full px-3 py-2 rounded-lg" />
+          </label>
+          <label class="space-y-1">
+            <span class="text-slate-300">Бюджет</span>
+            <input id="game-budget" type="text" placeholder="напр. 2000 ₽" class="input-dark w-full px-3 py-2 rounded-lg" />
+          </label>
+          <label class="space-y-1">
+            <span class="text-slate-300">Дата обмена</span>
+            <input id="game-date" type="text" value="31 декабря" class="input-dark w-full px-3 py-2 rounded-lg" />
+          </label>
+        </div>
+
+        <div class="space-y-2 pt-1">
+          <div class="flex items-center justify-between text-sm font-semibold">
+            <span>👥 Участники <span id="p-count" class="text-xs text-blue-300">(0)</span></span>
+            <span class="text-[11px] text-slate-400">минимум 3 человека</span>
+          </div>
+          <div class="flex gap-2">
+            <input
+              id="p-name"
+              type="text"
+              placeholder="Имя (напр. Мама, Папа, Я)"
+              class="input-dark flex-1 px-3 py-2 rounded-lg text-sm"
+            />
+            <button onclick="addParticipant()" class="btn-red text-white px-4 py-2 rounded-lg text-sm font-semibold">
+              + Добавить
+            </button>
+          </div>
+          <div id="p-list" class="flex flex-wrap gap-1.5"></div>
+        </div>
+
+        <!-- Exclusions -->
+        <div id="excl-section" class="hidden border-t border-white/10 pt-3 space-y-2">
+          <div class="text-xs font-semibold text-slate-200">
+            🚫 Семейные исключения (необязательно: кто кому НЕ дарит)
+          </div>
+          <div class="flex flex-wrap items-center gap-2 text-xs">
+            <select id="ex-a" class="input-dark px-2.5 py-1.5 rounded-lg"></select>
+            <span class="text-slate-400">↔ не дарит ↔</span>
+            <select id="ex-b" class="input-dark px-2.5 py-1.5 rounded-lg"></select>
+            <button onclick="addExclusion()" class="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg">
+              Запретить
+            </button>
+          </div>
+          <div id="ex-list" class="flex flex-wrap gap-1.5 text-xs"></div>
+        </div>
+
+        <div id="draw-error" class="hidden text-xs text-rose-300 bg-rose-950/50 border border-rose-500/40 rounded-lg p-2.5"></div>
+
+        <button
+          id="draw-btn"
+          onclick="runBlindDraw()"
+          disabled
+          class="btn-red text-white w-full py-3 rounded-xl text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed shadow-lg"
+        >
+          🎲 Провести слепую жеребьёвку
+        </button>
+      </div>
+
+      <!-- Blind Envelopes Card -->
+      <div id="envelopes-card" class="hidden glass rounded-2xl p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-sm font-bold">✉️ Конверты готовы — пары скрыты!</h2>
+            <p class="text-[11px] text-slate-300">
+              Отправьте каждому его личную зашифрованную ссылку в MAX (вы не увидите, кто внутри)
+            </p>
+          </div>
+          <button onclick="resetDraw()" class="text-xs text-slate-300 hover:text-white underline">
+            Переиграть
+          </button>
+        </div>
+
+        <div id="envelopes-list" class="space-y-2"></div>
+
+        <!-- Local pass-around preview modal -->
+        <div id="local-peek" class="hidden bg-slate-900/85 border border-amber-400/40 rounded-xl p-4 text-center space-y-2">
+          <div class="text-xs text-slate-300">
+            Только для: <b id="peek-giver" class="text-amber-300"></b>
+          </div>
+          <div class="text-lg font-bold">
+            🎁 Ты даришь подарок: <span id="peek-receiver" class="text-emerald-300"></span>
+          </div>
+          <div id="peek-meta" class="text-xs text-slate-400"></div>
+          <button onclick="hideLocalPeek()" class="bg-white/15 hover:bg-white/25 px-4 py-1.5 rounded-lg text-xs">
+            🙈 Скрыть экран
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+<script>
+  const participants = [];
+  const exclusions = []; // pairs of [idxA, idxB]
+  let currentTickets = []; // [{ name, token, receiverOnlyOnLocalPeek }]
+  let activeTicketData = null;
+
+  // --- Pure-JS authenticated stream cipher for URL hash tickets ---
+  // Works reliably in all contexts including file:// and mobile WebViews.
+  function utf8Encode(str) {
+    return new TextEncoder().encode(str);
+  }
+  function utf8Decode(bytes) {
+    return new TextDecoder().decode(bytes);
+  }
+  function toBase64Url(bytes) {
+    let bin = '';
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function fromBase64Url(str) {
+    const pad = '='.repeat((4 - (str.length % 4)) % 4);
+    const bin = atob(str.replace(/-/g, '+').replace(/_/g, '/') + pad);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  function fnv32(bytes, seed = 0x811c9dc5) {
+    let h = seed >>> 0;
+    for (let i = 0; i < bytes.length; i++) {
+      h ^= bytes[i];
+      h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    return h >>> 0;
+  }
+  function keystream(keyBytes, length) {
+    // xorshift128+ seeded from 16-byte crypto key
+    let s0 = (keyBytes[0] | (keyBytes[1] << 8) | (keyBytes[2] << 16) | (keyBytes[3] << 24)) >>> 0;
+    let s1 = (keyBytes[4] | (keyBytes[5] << 8) | (keyBytes[6] << 16) | (keyBytes[7] << 24)) >>> 0;
+    let s2 = (keyBytes[8] | (keyBytes[9] << 8) | (keyBytes[10] << 16) | (keyBytes[11] << 24)) >>> 0;
+    let s3 = (keyBytes[12] | (keyBytes[13] << 8) | (keyBytes[14] << 16) | (keyBytes[15] << 24)) >>> 0;
+    if ((s0 | s1 | s2 | s3) === 0) s0 = 0x9e3779b9;
+    const stream = new Uint8Array(length);
+    for (let i = 0; i < length; i++) {
+      let t = s3;
+      const s = s0;
+      s3 = s2; s2 = s1; s1 = s;
+      t ^= (t << 11) >>> 0;
+      t ^= (t >>> 8) >>> 0;
+      s0 = (t ^ s ^ (s >>> 19)) >>> 0;
+      stream[i] = ((s0 + s3) >>> ((i % 4) * 8)) & 0xff;
+    }
+    return stream;
+  }
+  function sealTicket(obj) {
+    const plain = utf8Encode(JSON.stringify(obj));
+    const key = new Uint8Array(16);
+    crypto.getRandomValues(key);
+    const ks = keystream(key, plain.length);
+    const cipher = new Uint8Array(plain.length);
+    for (let i = 0; i < plain.length; i++) cipher[i] = plain[i] ^ ks[i];
+    const tagInput = new Uint8Array(key.length + plain.length);
+    tagInput.set(key, 0);
+    tagInput.set(plain, key.length);
+    const tag = fnv32(tagInput);
+    const out = new Uint8Array(20 + cipher.length);
+    out.set(key, 0);
+    out[16] = tag & 0xff;
+    out[17] = (tag >>> 8) & 0xff;
+    out[18] = (tag >>> 16) & 0xff;
+    out[19] = (tag >>> 24) & 0xff;
+    out.set(cipher, 20);
+    return toBase64Url(out);
+  }
+  function unsealTicket(token) {
+    const raw = fromBase64Url(token);
+    if (raw.length < 22) throw new Error('Invalid ticket');
+    const key = raw.slice(0, 16);
+    const expectedTag = (raw[16] | (raw[17] << 8) | (raw[18] << 16) | (raw[19] << 24)) >>> 0;
+    const cipher = raw.slice(20);
+    const ks = keystream(key, cipher.length);
+    const plain = new Uint8Array(cipher.length);
+    for (let i = 0; i < cipher.length; i++) plain[i] = cipher[i] ^ ks[i];
+    const tagInput = new Uint8Array(key.length + plain.length);
+    tagInput.set(key, 0);
+    tagInput.set(plain, key.length);
+    if (fnv32(tagInput) !== expectedTag) throw new Error('Corrupted ticket');
+    return JSON.parse(utf8Decode(plain));
+  }
+
+  // --- Init ---
+  const isLocalFile = window.location.protocol !== 'https:' && window.location.protocol !== 'http:';
+  if (isLocalFile) {
+    document.getElementById('local-notice').classList.remove('hidden');
+  }
+  document.getElementById('p-name').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addParticipant();
+  });
+
+  function checkHashRoute() {
+    const hash = window.location.hash || '';
+    const match = hash.match(/ticket=([A-Za-z0-9_-]+)/);
+    if (!match) return;
+    try {
+      const data = unsealTicket(match[1]);
+      activeTicketData = data;
+      document.getElementById('organizer-view').classList.add('hidden');
+      document.getElementById('envelope-view').classList.remove('hidden');
+      document.getElementById('env-title').textContent = data.t || 'Семейный Тайный Санта';
+      document.getElementById('env-giver').textContent = data.g;
+      document.getElementById('revealed-box').classList.add('hidden');
+      document.getElementById('reveal-btn').classList.remove('hidden');
+    } catch {
+      // Ignore invalid hash
+    }
+  }
+  checkHashRoute();
+  window.addEventListener('hashchange', checkHashRoute);
+
+  function revealTicket() {
+    if (!activeTicketData) return;
+    document.getElementById('env-emoji').textContent = '🎁';
+    document.getElementById('reveal-btn').classList.add('hidden');
+    document.getElementById('revealed-box').classList.remove('hidden');
+    document.getElementById('env-receiver').textContent = activeTicketData.r;
+    const meta = [];
+    if (activeTicketData.b) meta.push(`💰 Бюджет: ${activeTicketData.b}`);
+    if (activeTicketData.d) meta.push(`📅 Обмен подарками: ${activeTicketData.d}`);
+    document.getElementById('env-meta').innerHTML = meta.map((m) => `<div>${esc(m)}</div>`).join('');
+  }
+
+  function backToOrganizer() {
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+    document.getElementById('envelope-view').classList.add('hidden');
+    document.getElementById('organizer-view').classList.remove('hidden');
+  }
+
+  function addParticipant() {
+    const input = document.getElementById('p-name');
+    const name = input.value.trim();
+    if (!name) { input.focus(); return; }
+    if (participants.some((p) => p.toLowerCase() === name.toLowerCase())) {
+      input.focus();
+      return;
+    }
+    participants.push(name);
+    input.value = '';
+    input.focus();
+    renderSetup();
+  }
+
+  function removeParticipant(idx) {
+    participants.splice(idx, 1);
+    for (let i = exclusions.length - 1; i >= 0; i--) {
+      const [a, b] = exclusions[i];
+      if (a === idx || b === idx) {
+        exclusions.splice(i, 1);
+      } else {
+        if (a > idx) exclusions[i][0]--;
+        if (b > idx) exclusions[i][1]--;
+      }
+    }
+    renderSetup();
+  }
+
+  function addExclusion() {
+    const a = Number(document.getElementById('ex-a').value);
+    const b = Number(document.getElementById('ex-b').value);
+    if (a === b) return;
+    if (exclusions.some(([x, y]) => (x === a && y === b) || (x === b && y === a))) return;
+    exclusions.push([a, b]);
+    renderSetup();
+  }
+
+  function removeExclusion(idx) {
+    exclusions.splice(idx, 1);
+    renderSetup();
+  }
+
+  function renderSetup() {
+    document.getElementById('p-count').textContent = `(${participants.length})`;
+    document.getElementById('draw-btn').disabled = participants.length < 3;
+    document.getElementById('draw-error').classList.add('hidden');
+
+    document.getElementById('p-list').innerHTML = participants
+      .map(
+        (name, i) => `
+      <span class="inline-flex items-center gap-1.5 bg-white/10 border border-white/15 rounded-full px-3 py-1 text-xs">
+        <span>${esc(name)}</span>
+        <button onclick="removeParticipant(${i})" class="text-slate-300 hover:text-rose-400">✕</button>
+      </span>
+    `
+      )
+      .join('');
+
+    const exclSection = document.getElementById('excl-section');
+    exclSection.classList.toggle('hidden', participants.length < 3);
+    if (participants.length >= 3) {
+      const opts = participants.map((n, i) => `<option value="${i}">${esc(n)}</option>`).join('');
+      document.getElementById('ex-a').innerHTML = opts;
+      document.getElementById('ex-b').innerHTML = opts;
+      if (participants.length > 1) document.getElementById('ex-b').selectedIndex = 1;
+      document.getElementById('ex-list').innerHTML = exclusions
+        .map(
+          ([a, b], i) => `
+        <span class="inline-flex items-center gap-1 bg-rose-500/20 border border-rose-400/30 rounded-full px-2.5 py-0.5 text-rose-200">
+          ${esc(participants[a])} ↔ ${esc(participants[b])}
+          <button onclick="removeExclusion(${i})" class="hover:text-white">✕</button>
+        </span>
+      `
+        )
+        .join('');
+    }
+  }
+
+  function cryptoRandomInt(max) {
+    const arr = new Uint32Array(1);
+    crypto.getRandomValues(arr);
+    return arr[0] % max;
+  }
+
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = cryptoRandomInt(i + 1);
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function solvePairs() {
+    const n = participants.length;
+    const banned = Array.from({ length: n }, (_, i) => new Set([i]));
+    for (const [a, b] of exclusions) {
+      banned[a].add(b);
+      banned[b].add(a);
+    }
+    const allowed = Array.from({ length: n }, (_, i) =>
+      shuffle(Array.from({ length: n }, (_, j) => j).filter((j) => !banned[i].has(j)))
+    );
+    const order = shuffle(Array.from({ length: n }, (_, i) => i)).sort(
+      (a, b) => allowed[a].length - allowed[b].length
+    );
+    const res = new Array(n).fill(-1);
+    const used = new Set();
+
+    function bt(step) {
+      if (step === n) return true;
+      for (let k = step; k < n; k++) {
+        if (!allowed[order[k]].some((c) => !used.has(c))) return false;
+      }
+      const g = order[step];
+      for (const c of allowed[g]) {
+        if (used.has(c)) continue;
+        res[g] = c;
+        used.add(c);
+        if (bt(step + 1)) return true;
+        used.delete(c);
+        res[g] = -1;
+      }
+      return false;
+    }
+
+    if (!bt(0)) return null;
+    return res;
+  }
+
+  function runBlindDraw() {
+    const errEl = document.getElementById('draw-error');
+    const pairs = solvePairs();
+    if (!pairs) {
+      errEl.textContent = '⚠️ С текущими исключениями невозможно составить пары. Уберите часть ограничений.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+    errEl.classList.add('hidden');
+
+    const title = document.getElementById('game-title').value.trim() || 'Семейный Тайный Санта';
+    const budget = document.getElementById('game-budget').value.trim();
+    const date = document.getElementById('game-date').value.trim();
+
+    // Generate encrypted tickets without ever displaying pairs in the UI!
+    currentTickets = participants.map((giverName, i) => {
+      const receiverName = participants[pairs[i]];
+      const token = sealTicket({
+        t: title,
+        g: giverName,
+        r: receiverName,
+        b: budget,
+        d: date,
+      });
+      return { name: giverName, token };
+    });
+
+    document.getElementById('setup-card').classList.add('hidden');
+    document.getElementById('envelopes-card').classList.remove('hidden');
+    renderEnvelopes();
+  }
+
+  function getBasePublicUrl() {
+    if (!isLocalFile) {
+      return window.location.origin + window.location.pathname;
+    }
+    const custom = (document.getElementById('hosted-url')?.value || '').trim();
+    return /^https?:\/\//i.test(custom) ? custom : null;
+  }
+
+  function renderEnvelopes() {
+    const baseUrl = getBasePublicUrl();
+    const list = document.getElementById('envelopes-list');
+    list.innerHTML = currentTickets
+      .map(
+        (item, i) => `
+      <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-900/50 border border-white/10 rounded-xl px-3.5 py-2.5">
+        <div class="flex items-center gap-2 text-sm">
+          <span>✉️</span>
+          <span class="font-semibold">${esc(item.name)}</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button
+            onclick="sendMaxShare(${i})"
+            class="btn-max text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-40"
+            ${baseUrl ? '' : 'title="Укажите https:// адрес опубликованной страницы выше"'}
+          >
+            ✈️ Отправить в MAX
+          </button>
+          <button
+            onclick="peekLocal(${i})"
+            class="bg-white/10 hover:bg-white/20 text-xs px-2.5 py-1.5 rounded-lg"
+            title="Посмотреть только свой конверт на этом экране"
+          >
+            👁️ Открыть
+          </button>
+        </div>
+      </div>
+    `
+      )
+      .join('');
+  }
+
+  document.getElementById('hosted-url')?.addEventListener('input', () => {
+    if (currentTickets.length > 0) renderEnvelopes();
+  });
+
+  function sendMaxShare(idx) {
+    const baseUrl = getBasePublicUrl();
+    if (!baseUrl) {
+      alert('Сначала загрузите файл santa-max.html на бесплатный хостинг (например, Netlify Drop или GitHub Pages) и вставьте https:// ссылку в поле сверху — иначе родственники не смогут открыть конверт со своего телефона.');
+      document.getElementById('hosted-url')?.focus();
+      return;
+    }
+    const item = currentTickets[idx];
+    const ticketUrl = `${baseUrl}#ticket=${item.token}`;
+    const msg = `🎅 Привет, ${item.name}! Жеребьёвка «Тайного Санты» готова!\n\nОткрой свой тайный конверт (никому не пересылай):\n${ticketUrl}`;
+    const maxShareUrl = `https://max.ru/:share?text=${encodeURIComponent(msg)}`;
+    window.open(maxShareUrl, '_blank');
+  }
+
+  function peekLocal(idx) {
+    const item = currentTickets[idx];
+    const data = unsealTicket(item.token);
+    if (!confirm(`Открыть конверт для «${data.g}»?\nНажмите ОК, только если это вы!`)) return;
+    document.getElementById('peek-giver').textContent = data.g;
+    document.getElementById('peek-receiver').textContent = data.r;
+    const meta = [];
+    if (data.b) meta.push(`💰 Бюджет: ${data.b}`);
+    if (data.d) meta.push(`📅 Обмен: ${data.d}`);
+    document.getElementById('peek-meta').textContent = meta.join(' • ');
+    document.getElementById('local-peek').classList.remove('hidden');
+  }
+
+  function hideLocalPeek() {
+    document.getElementById('peek-receiver').textContent = '';
+    document.getElementById('local-peek').classList.add('hidden');
+  }
+
+  function resetDraw() {
+    hideLocalPeek();
+    currentTickets = [];
+    document.getElementById('envelopes-card').classList.add('hidden');
+    document.getElementById('setup-card').classList.remove('hidden');
+  }
+
+  function esc(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+</script>
+</body>
+</html>
